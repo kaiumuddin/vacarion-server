@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const {MongoClient, ServerApiVersion, ObjectId} = require('mongodb');
 require('dotenv').config();
 
@@ -16,10 +17,35 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.rmad3ac.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1});
 
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({message: 'unauthorized access'});
+    }
+
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded) {
+        if (err) {
+            return res.status(401).send({message: 'unauthorized access'});
+        }
+        req.decoded = decoded;
+        next();
+    });
+}
+
+
 async function run() {
     try {
         const serviceCollection = client.db('vacarion').collection('services');
         const reviewCollection = client.db('vacarion').collection('reviews');
+
+        //JWT
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'});
+            res.send({token});
+        });
+
 
         // service api
         app.get('/services', async (req, res) => {
@@ -66,8 +92,14 @@ async function run() {
             res.send(review);
         });
 
-        app.get('/reviewbyemail/:email', async (req, res) => {
-            const email = req.params.email;
+        app.get('/reviewbyemail/', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+
+            if (decoded.email !== req.query.email) {
+                res.status(403).send({messgae: 'unauthorozed access'});
+            }
+
+            const email = req.query.email;
             const query = {revieweremail: email};
             const cursor = await reviewCollection.find(query);
             const reviews = await cursor.toArray();
