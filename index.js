@@ -19,6 +19,7 @@ const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: 
 async function run() {
     try {
         const serviceCollection = client.db('vacarion').collection('services');
+        const reviewCollection = client.db('vacarion').collection('reviews');
 
         // service api
         app.get('/services', async (req, res) => {
@@ -28,10 +29,35 @@ async function run() {
             res.send(services);
         });
 
+        app.get('/services/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = {_id: ObjectId(id)};
+            const service = await serviceCollection.findOne(query);
+            res.send(service);
+        });
+
         app.post('/services', async (req, res) => {
             const newService = req.body;
             console.log(newService);
             const fromDb = await serviceCollection.insertOne(newService);
+            res.send(fromDb);
+        });
+
+
+        // Review api
+        app.get('/review/:serviceid', async (req, res) => {
+            const serviceid = req.params.serviceid;
+            console.log(serviceid);
+            const query = {serviceId: serviceid};
+            const cursor = await reviewCollection.find(query);
+            const reviews = await cursor.toArray();
+            res.send(reviews);
+        });
+
+        app.post('/review', async (req, res) => {
+            const newReview = req.body;
+            console.log(newReview);
+            const fromDb = await reviewCollection.insertOne(newReview);
             res.send(fromDb);
         });
 
