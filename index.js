@@ -92,14 +92,16 @@ async function run() {
             res.send(review);
         });
 
-        app.get('/reviewbyemail/', verifyJWT, async (req, res) => {
+        app.get('/reviewbyemail/:email', async (req, res) => {
             const decoded = req.decoded;
+            console.log("hitted");
+            // if (decoded.email !== req.query.email) {
+            //     res.status(403).send({messgae: 'unauthorozed access'});
+            // }
 
-            if (decoded.email !== req.query.email) {
-                res.status(403).send({messgae: 'unauthorozed access'});
-            }
-
-            const email = req.query.email;
+            const email = req.params.email;
+            console.log(email);
+            // const email = req.query.email;
             const query = {revieweremail: email};
             const cursor = await reviewCollection.find(query);
             const reviews = await cursor.toArray();
