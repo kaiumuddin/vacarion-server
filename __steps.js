@@ -5,7 +5,7 @@ install
     express
     cors
     mongodb
-    dot env
+    dotenv
 port 5000
 script "start" : "node index.js"
 
